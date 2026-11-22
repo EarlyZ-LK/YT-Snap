@@ -172,7 +172,13 @@ app.post('/api/enhance', auth, async (req, res) => {
       method: 'POST', headers: { Authorization: `Bearer ${OPENAI_KEY}` }, body: form
     });
     const j = await r.json();
-    if (!r.ok) throw new Error(j.error?.message || `OpenAI error ${r.status}`);
+    if (!r.ok) {
+      const msg = j.error?.message || `OpenAI error ${r.status}`;
+      const err = new Error(msg);
+      if (/insufficient_quota|billing_hard_limit_reached/.test(j.error?.code || '') ||
+          /no credits|exceeded your current quota|billing/i.test(msg)) err.code = 'no_credits';
+      throw err;
+    }
     await fs.writeFile(raw, Buffer.from(j.data[0].b64_json, 'base64'));
 
     let vf = `crop=${P.fw}:${P.fh}:${P.x}:${P.y}`;
@@ -182,7 +188,7 @@ app.post('/api/enhance', auth, async (req, res) => {
 
     res.json({ id, frame, matchSize: !!matchSize, promptId: prompt.id });
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    res.status(400).json({ error: e.message, code: e.code });
   }
 });
 
@@ -200,4 +206,4 @@ setInterval(async () => {
   }
 }, 3600 * 1000).unref();
 
-app.listen(PORT, () => console.log(`yt-snapshot listening on :${PORT}`));
+app.listen(PORT, () => console.log(`YT Snap listening on :${PORT}`));

@@ -2,7 +2,7 @@
   {
     "id": "faithful-restore",
     "label": "Faithful restore",
-    "text": "Restore this video frame so it looks like a clean, sharp, high-resolution photograph. Remove compression artifacts, blocking, banding and noise. Recover fine detail and texture, and correct slight motion blur or softness. Do not add, remove or change any object, person, face, text or logo, and do not change the composition. Keep colours natural and true to the original."
+    "text": "Enhance this photo to clean, sharp, natural quality while preserving the exact identity of the person. Keep facial features, bone structure, eye color, expression, hair, skin tone, clothing, pose, and background unchanged. Reduce blur, grain, and noise, and balance lighting and color naturally. Keep real skin texture, pores, and fine lines visible—do not slim or reshape the face, add beauty filters, over-smooth skin, or invent new details."
   },
   {
     "id": "thumbnail-ready",
