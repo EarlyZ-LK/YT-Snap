@@ -359,7 +359,10 @@ $('enhance').onclick = async () => {
     await show('enhanced');
     say('Done. Switch tabs to compare, or pick another frame and enhance it too.');
     if (isMobile()) $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch (e) { say(e.message, true); if (e.code === 'no_credits') { $('noCredits').hidden = false; $('noCredits').scrollIntoView({ block: 'center', behavior: 'smooth' }); } }
+  } catch (e) {
+    if (e.code === 'no_credits') { $('noCredits').hidden = false; $('noCredits').scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    else say(e.message, true);
+  }
   busy(false);
 };
 $('dockEnhance').onclick = () => $('enhance').click();
