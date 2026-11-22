@@ -250,9 +250,29 @@ $('dlFrame').onclick = async () => {
     a.click();
   } catch (e) { say(e.message, true); }
 };
+// navigator.clipboard only exists on HTTPS or localhost, so over http://<LAN-IP> on a phone it is
+// undefined. Fall back to the older execCommand route, then to a manual long-press copy.
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); return true; } catch {}
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.readOnly = true;
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch {}
+  ta.remove();
+  return ok;
+}
+
 $('copyPrompt').onclick = async () => {
-  try { await navigator.clipboard.writeText($('promptText').value); say('Prompt copied.'); }
-  catch { $('promptText').select(); say('Copy failed. The prompt is selected, press Ctrl+C.', true); }
+  if (await copyText($('promptText').value)) return say('Prompt copied.');
+  const box = $('promptText');
+  box.scrollIntoView({ block: 'center' });
+  box.focus(); box.select(); box.setSelectionRange(0, box.value.length);
+  say('Could not copy automatically. The prompt is selected: long-press it and choose Copy.', true);
 };
 $('openGpt').onclick = () => window.open('https://chatgpt.com/', '_blank', 'noopener');
 
