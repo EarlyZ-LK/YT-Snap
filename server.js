@@ -122,9 +122,13 @@ app.post('/api/capture', auth, async (req, res) => {
       i, time: Math.min(maxT, Math.max(0, +(t + o).toFixed(3)))
     }));
     // -ss before -i = fast seek on the remote stream, still frame-accurate when decoding a single frame.
+    // One decode per frame, three outputs: full-quality PNG, 1600px preview and 480px thumbnail (small JPEGs keep the UI fast).
+    const jpg = w => `scale='min(${w},iw)':-2,format=yuvj420p`;
     await Promise.all(frames.map(f =>
-      ffmpeg('-ss', String(f.time), '-i', info.url, '-frames:v', '1', '-compression_level', '6',
-             path.join(DATA, `${id}-f${f.i}.png`))));
+      ffmpeg('-ss', String(f.time), '-i', info.url,
+             '-map', '0:v:0', '-frames:v', '1', '-compression_level', '6', path.join(DATA, `${id}-f${f.i}.png`),
+             '-map', '0:v:0', '-frames:v', '1', '-vf', jpg(1600), '-q:v', '3', path.join(DATA, `${id}-p${f.i}.jpg`),
+             '-map', '0:v:0', '-frames:v', '1', '-vf', jpg(480), '-q:v', '5', path.join(DATA, `${id}-t${f.i}.jpg`))));
 
     const meta = { id, videoId: parsed.id, title: info.title, time: t, step, frames,
                    width: info.width, height: info.height, vcodec: info.vcodec, fps: info.fps };
@@ -184,6 +188,8 @@ app.post('/api/enhance', auth, async (req, res) => {
     let vf = `crop=${P.fw}:${P.fh}:${P.x}:${P.y}`;
     if (matchSize) vf += `,scale=${meta.width}:${meta.height}:flags=lanczos`;
     await ffmpeg('-i', raw, '-vf', vf, final);
+    await ffmpeg('-i', final, '-vf', "scale='min(1600,iw)':-2,format=yuvj420p", '-q:v', '3',
+                 path.join(DATA, `${id}-q${frame}.jpg`));
     await Promise.all([prep, raw].map(f => fs.rm(f, { force: true })));
 
     res.json({ id, frame, matchSize: !!matchSize, promptId: prompt.id });
@@ -193,8 +199,12 @@ app.post('/api/enhance', auth, async (req, res) => {
 });
 
 app.get('/api/files/:name', auth, (req, res) => {
-  if (!/^[a-f0-9]{12}-[fe][0-2]\.png$/.test(req.params.name)) return res.sendStatus(404);
-  res.sendFile(path.join(DATA, req.params.name), err => err && !res.headersSent && res.sendStatus(404));
+  const name = req.params.name;
+  if (!/^[a-f0-9]{12}-([fe][0-2]\.png|[tpq][0-2]\.jpg)$/.test(name)) return res.sendStatus(404);
+  const mutable = /-[eq][0-2]\./.test(name); // enhanced results can be regenerated under the same name
+  res.sendFile(path.join(DATA, name),
+    { headers: { 'Cache-Control': mutable ? 'private, no-cache' : 'private, max-age=86400, immutable' } },
+    err => err && !res.headersSent && res.sendStatus(404));
 });
 
 // delete anything older than 24h

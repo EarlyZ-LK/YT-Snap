@@ -2,212 +2,311 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d3202f">
 <title>YT Snap</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23d3202f'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23fff'/%3E%3C/svg%3E">
 <style>
   :root {
-    --table: #e8ebea;
-    --panel: #f6f7f6;
-    --mat: #1c2321;
-    --ink: #17201e;
-    --muted: #5d6a66;
-    --line: #c9d0cd;
-    --accent: #0e5a6b;
-    --accent-ink: #ffffff;
-    --err: #a3261f;
-    font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --bg:#fbf7f6; --surface:#ffffff; --ink:#201516; --muted:#6c5a5c; --line:#ecdede;
+    --red:#d3202f; --red-hover:#b81a28; --red-ink:#ffffff; --red-soft:#fdeced; --red-text:#b3141f;
+    --mat:#1a1112; --radius:14px; --hdr:62px;
+    --shadow:0 1px 2px rgba(60,10,15,.06), 0 8px 24px rgba(60,10,15,.07);
+    color-scheme: light dark;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --table:#151a19; --panel:#1d2422; --mat:#0b0f0e; --ink:#e7ecea; --muted:#92a19c; --line:#313b38; --accent:#58b6c9; --accent-ink:#06191d; --err:#ff8a80; }
+    :root { --bg:#140c0d; --surface:#1e1214; --ink:#f5ecec; --muted:#b39b9d; --line:#3a2427;
+            --red:#d92d3f; --red-hover:#e5495a; --red-soft:#3a1519; --red-text:#ff8d98; --mat:#0c0707; --shadow:none; }
   }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--table); color:var(--ink); min-height:100vh; }
-  .app { display:grid; grid-template-columns: 360px 1fr; min-height:100vh; }
-  aside { background:var(--panel); border-right:1px solid var(--line); padding:28px 24px; display:flex; flex-direction:column; gap:20px; }
-  h1 { font-size:22px; font-weight:600; margin:0; letter-spacing:-.01em; }
-  .sub { color:var(--muted); font-size:14px; margin:4px 0 0; line-height:1.45; }
-  label { display:block; font-size:13px; font-weight:500; margin-bottom:6px; }
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-size:15px; line-height:1.45; min-height:100vh; }
+  [hidden] { display:none !important; }
+  :focus-visible { outline:3px solid var(--red); outline-offset:2px; }
+
+  /* header */
+  .top { position:sticky; top:0; z-index:30; background:var(--bg); background:color-mix(in srgb, var(--bg) 90%, transparent);
+         -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-top:3px solid var(--red);
+         border-bottom:1px solid var(--line); padding:10px max(20px, env(safe-area-inset-right)) 10px max(20px, env(safe-area-inset-left)); }
+  .brand { max-width:1360px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .logo { width:38px; height:38px; border-radius:10px; background:var(--red); display:grid; place-items:center; flex:none; }
+  h1 { font-size:18px; line-height:1.2; margin:0; font-weight:700; letter-spacing:-.01em; }
+  .sub { margin:0; font-size:13px; color:var(--muted); }
+
+  /* layout */
+  .shell { max-width:1360px; margin:0 auto; padding:20px max(20px, env(safe-area-inset-right)) 28px max(20px, env(safe-area-inset-left));
+           display:grid; gap:20px; grid-template-columns:380px minmax(0,1fr);
+           grid-template-rows:auto 1fr; grid-template-areas:"capture results" "enhance results"; align-items:start; }
+  #results, #enhanceCard { scroll-margin-top:calc(var(--hdr) + 10px); }
+  #captureCard { grid-area:capture; } #results { grid-area:results; } #enhanceCard { grid-area:enhance; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow);
+          display:flex; flex-direction:column; gap:14px; }
+  h2 { margin:0; font-size:15px; font-weight:700; display:flex; align-items:center; gap:10px; }
+  .num { width:24px; height:24px; border-radius:50%; background:var(--red); color:var(--red-ink); font-size:13px; display:grid; place-items:center; }
+
+  /* form controls */
+  label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
   input[type=text], input[type=password], select, textarea {
-    width:100%; font:inherit; font-size:14px; color:var(--ink); background:transparent;
-    border:1px solid var(--line); border-radius:6px; padding:10px 11px;
-  }
-  textarea { resize:none; color:var(--muted); line-height:1.45; }
-  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  .notice { border:1px solid var(--accent); border-radius:6px; padding:12px; font-size:13.5px; }
+    width:100%; font:inherit; font-size:16px; color:var(--ink); background:var(--surface);
+    border:1px solid var(--line); border-radius:10px; padding:0 12px; min-height:46px; }
+  textarea { padding:10px 12px; resize:none; color:var(--muted); line-height:1.45; font-size:14px; }
+  input:focus, select:focus, textarea:focus { border-color:var(--red); outline:3px solid var(--red-soft); outline-offset:0; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .hint { color:var(--muted); font-size:12.5px; margin-top:6px; }
+  .check { display:flex; gap:10px; align-items:flex-start; font-weight:400; font-size:13.5px; margin:0; cursor:pointer; }
+  .check input { width:20px; height:20px; margin:0; accent-color:var(--red); flex:none; }
+
+  .btn { font:inherit; font-weight:600; min-height:46px; padding:0 18px; border-radius:10px; cursor:pointer;
+         border:1px solid var(--red); background:var(--red); color:var(--red-ink); transition:background .15s, transform .05s; }
+  .btn:hover:not(:disabled) { background:var(--red-hover); border-color:var(--red-hover); }
+  .btn:active:not(:disabled) { transform:translateY(1px); }
+  .btn.secondary { background:transparent; color:var(--red-text); }
+  .btn.secondary:hover:not(:disabled) { background:var(--red-soft); color:var(--red-text); border-color:var(--red); }
+  .btn.sm { min-height:40px; font-size:13px; padding:0 12px; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+
+  .notice { border:1px solid var(--red); background:var(--red-soft); border-radius:10px; padding:12px; font-size:13.5px; }
   .notice p { margin:6px 0 10px; color:var(--muted); line-height:1.45; }
   .notice .btns { display:flex; flex-wrap:wrap; gap:8px; }
-  button.small { font-size:12.5px; padding:6px 10px; }
-  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .strip { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .thumb { background:var(--panel); color:var(--ink); border:1px solid var(--line); padding:6px; border-radius:8px;
-           display:flex; flex-direction:column; gap:6px; text-align:left; font-weight:400; }
-  .thumb img { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:4px; display:block; background:var(--mat); }
-  .thumb span { font-size:12.5px; font-variant-numeric: tabular-nums; }
-  .thumb[aria-pressed=true] { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
-  .hint { color:var(--muted); font-size:12.5px; margin-top:5px; }
-  button { font:inherit; font-size:14px; font-weight:500; border-radius:6px; padding:11px 14px; cursor:pointer;
-           border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink); }
-  button.ghost { background:transparent; color:var(--accent); }
-  button:disabled { opacity:.45; cursor:not-allowed; }
-  .check { display:flex; gap:8px; align-items:flex-start; font-size:13px; font-weight:400; }
-  .check input { margin-top:2px; }
-  .step { display:flex; flex-direction:column; gap:12px; padding-top:20px; border-top:1px solid var(--line); }
-  main { padding:28px; display:flex; flex-direction:column; gap:14px; min-width:0; }
-  .bar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; min-height:38px; }
-  .tabs { display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
-  .tabs button { border:0; border-radius:0; background:transparent; color:var(--muted); padding:8px 16px; }
-  .tabs button[aria-selected=true] { background:var(--ink); color:var(--table); }
-  .meta { color:var(--muted); font-size:13px; font-variant-numeric: tabular-nums; }
-  .stage { flex:1; min-height:320px; background:var(--mat); border-radius:8px; display:grid; place-items:center; overflow:hidden; position:relative; }
-  .stage img { max-width:100%; max-height:calc(100vh - 290px); display:block; }
-  .empty { color:#9fb0ab; font-size:15px; max-width:30ch; text-align:center; line-height:1.5; padding:20px; }
-  .busy { position:absolute; inset:0; background:rgba(11,15,14,.72); display:none; place-items:center; color:#e7ecea; font-size:15px; }
+
+  /* results */
+  .results { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .thumb { background:var(--surface); color:var(--ink); border:2px solid var(--line); border-radius:12px; padding:6px; display:flex;
+           flex-direction:column; gap:2px; text-align:left; cursor:pointer; min-width:0; font:inherit; transition:border-color .15s, box-shadow .15s; }
+  .thumb img { width:100%; aspect-ratio:var(--ar,16/9); object-fit:cover; border-radius:8px; display:block; background:var(--mat); margin-bottom:4px; }
+  .thumb b { font-size:13px; padding:0 2px; }
+  .thumb small { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; padding:0 2px 2px; }
+  .thumb:hover { border-color:var(--red); }
+  .thumb[aria-pressed=true] { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
+  .skel { aspect-ratio:var(--ar,16/9); border-radius:12px; border:2px solid transparent;
+          background:linear-gradient(90deg,var(--line) 25%,var(--surface) 50%,var(--line) 75%); background-size:200% 100%; animation:sh 1.2s linear infinite; }
+  @keyframes sh { to { background-position:-200% 0; } }
+
+  .bar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .tabs { display:inline-flex; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:3px; }
+  .tabs button { font:inherit; font-weight:600; font-size:14px; border:0; border-radius:8px; background:transparent; color:var(--muted);
+                 min-height:38px; padding:0 18px; cursor:pointer; }
+  .tabs button[aria-selected=true] { background:var(--red); color:var(--red-ink); }
+  .tabs button:disabled { opacity:.45; cursor:not-allowed; }
+  .meta { color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; min-height:19px; overflow-wrap:anywhere; }
+
+  .stage { background:var(--mat); border-radius:var(--radius); min-height:280px; display:grid; place-items:center; position:relative;
+           overflow:hidden; max-height:min(78vh, 900px); }
+  .stage.has-img { aspect-ratio:var(--ar,16/9); min-height:0; }
+  .stage img { width:100%; height:100%; object-fit:contain; display:block; transition:opacity .15s; }
+  .stage.loading img { opacity:.5; }
+  .empty { color:#c9b3b5; text-align:center; max-width:32ch; padding:24px; line-height:1.5; display:grid; justify-items:center; gap:12px; }
+  .empty svg { opacity:.7; }
+  .busy { position:absolute; inset:0; background:rgba(12,7,7,.72); display:none; place-items:center; align-content:center; gap:14px;
+          color:#f5ecec; text-align:center; padding:20px; }
   .busy.on { display:grid; }
-  .status { font-size:13.5px; min-height:20px; }
-  .status.err { color:var(--err); }
-  @media (max-width: 820px) { .app { grid-template-columns:1fr; } aside { border-right:0; border-bottom:1px solid var(--line); } .stage img { max-height:70vh; } }
-  @media (prefers-reduced-motion: no-preference) { .busy.on span { animation: pulse 1.4s ease-in-out infinite; } @keyframes pulse { 50% { opacity:.45; } } }
+  .spin { width:30px; height:30px; border:3px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:rot .8s linear infinite; margin:0 auto; }
+  @keyframes rot { to { transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin { animation-duration:2.4s; } .skel { animation:none; } }
+
+  /* toast */
+  .status { position:fixed; z-index:50; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%);
+            width:min(92vw, 640px); padding:12px 16px; border-radius:12px; font-size:14px; cursor:pointer;
+            background:var(--surface); border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,.18); }
+  .status.err { background:var(--red-soft); border-color:var(--red); color:var(--red-text); font-weight:600; }
+
+  /* mobile dock */
+  .dock { display:none; }
+
+  @media (max-width: 899px) {
+    :root { --hdr:86px; }
+    .shell { grid-template-columns:minmax(0,1fr); grid-template-rows:auto; grid-template-areas:"capture" "results" "enhance"; gap:16px; padding-top:14px; }
+    .card { padding:16px; }
+    .sub { font-size:12.5px; }
+    .stage { max-height:68vh; min-height:220px; }
+    .btn, .tabs button { min-height:48px; }
+    #enhance { display:none; }
+    body.has-snap .shell { padding-bottom:calc(92px + env(safe-area-inset-bottom, 0px)); }
+    body.has-snap .dock { display:block; position:fixed; left:0; right:0; bottom:0; z-index:40; padding:10px max(16px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left));
+                          background:var(--surface); border-top:1px solid var(--line); box-shadow:0 -8px 24px rgba(0,0,0,.12); }
+    .dock .btn { width:100%; }
+    body.has-snap .status { bottom:calc(88px + env(safe-area-inset-bottom, 0px)); }
+  }
+  @media (max-width: 380px) { .row2 { grid-template-columns:1fr; } .tabs button { padding:0 12px; } }
 </style>
 </head>
 <body>
-<div class="app">
-  <aside>
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="3" fill="#fff" stroke="none"/></svg>
+    </span>
     <div>
       <h1>YT Snap</h1>
       <p class="sub">Pull the sharpest still from a YouTube link, then Enhance.</p>
     </div>
+  </div>
+</header>
+
+<div class="status" id="status" aria-live="polite" hidden></div>
+
+<main class="shell">
+  <section class="card" id="captureCard">
+    <h2><span class="num">1</span>Capture</h2>
 
     <div id="tokenBox" hidden>
       <label for="token">Access token</label>
       <input id="token" type="password" autocomplete="current-password">
     </div>
 
-    <div class="step" style="border:0;padding:0">
-      <div>
-        <label for="url">YouTube link</label>
-        <input id="url" type="text" placeholder="https://youtu.be/VIDEO_ID?t=95" autocomplete="off">
-        <div class="hint">The time in the link (t=) is used automatically.</div>
-      </div>
-      <div class="row2">
-        <div>
-          <label for="time">Time override</label>
-          <input id="time" type="text" placeholder="1:35">
-        </div>
-        <div>
-          <label for="step">Frame spacing</label>
-          <select id="step">
-            <option value="0.5" selected>&plusmn;0.5 s</option>
-            <option value="0.25">&plusmn;0.25 s</option>
-            <option value="1">&plusmn;1 s</option>
-          </select>
-        </div>
-      </div>
-      <button id="capture">Capture 3 frames</button>
+    <div>
+      <label for="url">YouTube link</label>
+      <input id="url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://youtu.be/VIDEO_ID?t=95" autocomplete="off">
+      <div class="hint">The time in the link (t=) is used automatically.</div>
     </div>
-
-    <div class="step">
+    <div class="row2">
       <div>
-        <label for="preset">Enhancement prompt</label>
-        <select id="preset"></select>
+        <label for="time">Time override</label>
+        <input id="time" type="text" placeholder="1:35" autocomplete="off">
       </div>
-      <textarea id="promptText" rows="6" readonly aria-label="Prompt text"></textarea>
-      <label class="check"><input type="checkbox" id="match"> Scale the result back up to the original size</label>
-      <button id="enhance" disabled>Enhance with ChatGPT</button>
+      <div>
+        <label for="step">Frame spacing</label>
+        <select id="step">
+          <option value="0.5" selected>&plusmn;0.5 s</option>
+          <option value="0.25">&plusmn;0.25 s</option>
+          <option value="1">&plusmn;1 s</option>
+        </select>
+      </div>
     </div>
+    <button class="btn" id="capture" type="button">Capture 3 frames</button>
+  </section>
 
-    <div class="status" id="status" role="status"></div>
+  <section class="results" id="results" aria-label="Results">
+    <div class="strip" id="strip" hidden></div>
+    <div class="bar">
+      <div class="tabs" role="tablist">
+        <button role="tab" type="button" id="tabO" aria-selected="true" disabled>Original</button>
+        <button role="tab" type="button" id="tabE" aria-selected="false" disabled>Enhanced</button>
+      </div>
+      <button class="btn secondary sm" id="download" type="button" disabled>Download PNG</button>
+    </div>
+    <div class="meta" id="meta"></div>
+    <div class="stage" id="stage">
+      <div class="empty" id="empty">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Paste a link and press Capture. You get three frames around that moment to choose from.</span>
+      </div>
+      <img id="img" alt="" hidden decoding="async">
+      <div class="busy" id="busy"><div class="spin" aria-hidden="true"></div><span id="busyText">Working…</span></div>
+    </div>
+  </section>
+
+  <section class="card" id="enhanceCard">
+    <h2><span class="num">2</span>Enhance</h2>
+    <div>
+      <label for="preset">Enhancement prompt</label>
+      <select id="preset"></select>
+    </div>
+    <textarea id="promptText" rows="6" readonly aria-label="Prompt text"></textarea>
+    <label class="check"><input type="checkbox" id="match"> Scale the result back up to the original size</label>
+    <button class="btn" id="enhance" type="button" disabled>Enhance with ChatGPT</button>
 
     <div class="notice" id="noCredits" hidden>
       <strong>Out of OpenAI credits</strong>
       <p>You can still enhance this frame by hand: download the selected frame, copy the prompt, then attach the image and paste the prompt in ChatGPT.</p>
       <div class="btns">
-        <button class="ghost small" id="dlFrame" type="button">Download selected frame</button>
-        <button class="ghost small" id="copyPrompt" type="button">Copy prompt</button>
-        <button class="ghost small" id="openGpt" type="button">Open ChatGPT</button>
+        <button class="btn secondary sm" id="dlFrame" type="button">Download selected frame</button>
+        <button class="btn secondary sm" id="copyPrompt" type="button">Copy prompt</button>
+        <button class="btn secondary sm" id="openGpt" type="button">Open ChatGPT</button>
       </div>
     </div>
-  </aside>
+  </section>
+</main>
 
-  <main>
-    <div class="bar">
-      <div class="tabs" role="tablist">
-        <button role="tab" id="tabO" aria-selected="true" disabled>Original</button>
-        <button role="tab" id="tabE" aria-selected="false" disabled>Enhanced</button>
-      </div>
-      <div class="meta" id="meta"></div>
-      <button class="ghost" id="download" disabled>Download PNG</button>
-    </div>
-    <div class="strip" id="strip" hidden></div>
-    <div class="stage">
-      <div class="empty" id="empty">Paste a link and press Capture. You get three frames around that moment to choose from.</div>
-      <img id="img" alt="" hidden>
-      <div class="busy" id="busy"><span id="busyText">Working…</span></div>
-    </div>
-  </main>
-</div>
+<div class="dock"><button class="btn" id="dockEnhance" type="button" disabled>Enhance with ChatGPT</button></div>
 
 <script>
 const $ = id => document.getElementById(id);
-const state = { cfg: null, snap: null, frame: 1, view: 'original', enhanced: {}, urls: {} };
+const state = { cfg: null, snap: null, frame: 1, view: 'original', enhanced: {}, files: {}, seq: 0 };
+const labels = ['Before', 'Link time', 'After'];
 
 const tokenInput = $('token');
-tokenInput.value = localStorage.getItem('fg_token') || '';
-tokenInput.addEventListener('change', () => localStorage.setItem('fg_token', tokenInput.value));
-const headers = () => ({ 'Content-Type': 'application/json', 'x-access-token': tokenInput.value });
+try { tokenInput.value = localStorage.getItem('fg_token') || ''; } catch {}
+tokenInput.addEventListener('change', () => { try { localStorage.setItem('fg_token', tokenInput.value); } catch {} });
+const authHeaders = () => ({ 'x-access-token': tokenInput.value });
 
-function say(msg, err) { $('status').textContent = msg || ''; $('status').className = 'status' + (err ? ' err' : ''); }
+/* ---------- small helpers ---------- */
+let toastTimer;
+function say(msg, err) {
+  const el = $('status'); clearTimeout(toastTimer);
+  if (!msg) { el.hidden = true; return; }
+  el.textContent = msg; el.className = 'status' + (err ? ' err' : ''); el.hidden = false;
+  el.setAttribute('role', err ? 'alert' : 'status');
+  if (!err) toastTimer = setTimeout(() => { el.hidden = true; }, 6000);
+}
+$('status').onclick = () => say('');
+
+function sync() { $('dockEnhance').disabled = $('enhance').disabled; }
 function busy(on, text) {
   $('busy').classList.toggle('on', on); if (text) $('busyText').textContent = text;
-  $('capture').disabled = on; $('enhance').disabled = on || !state.snap;
+  $('capture').disabled = on; $('enhance').disabled = on || !state.snap; sync();
 }
 
 async function post(path, body) {
-  const r = await fetch(path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(body) });
   const j = await r.json();
   if (!r.ok) { const err = new Error(j.error || 'Request failed'); err.code = j.code; throw err; }
   return j;
 }
 
-async function loadImage(key) {
-  if (!state.urls[key]) {
-    const r = await fetch(`/api/files/${key}.png`, { headers: { 'x-access-token': tokenInput.value } });
-    if (!r.ok) throw new Error('Could not load the image.');
-    state.urls[key] = URL.createObjectURL(await r.blob());
+// Fetch an image once, keep it as a blob URL (the token header means <img src> can't do it directly).
+function loadFile(name) {
+  if (!state.files[name]) {
+    state.files[name] = fetch(`/api/files/${name}`, { headers: authHeaders() }).then(async r => {
+      if (!r.ok) throw new Error('Could not load the image.');
+      return URL.createObjectURL(await r.blob());
+    }).catch(e => { delete state.files[name]; throw e; });
   }
-  return state.urls[key];
+  return state.files[name];
 }
+function dropFile(name) { const p = state.files[name]; delete state.files[name]; if (p) p.then(URL.revokeObjectURL).catch(() => {}); }
 
 const fmt = s => { const m = Math.floor(s / 60); return `${m}:${(s - m * 60).toFixed(2).padStart(5, '0')}`; };
-const labels = ['Before', 'Link time', 'After'];
+const isMobile = () => matchMedia('(max-width: 899px)').matches;
 
-async function renderStrip() {
+/* ---------- frames ---------- */
+function skeleton() { const s = $('strip'); s.hidden = false; s.innerHTML = '<div class="skel"></div>'.repeat(3); }
+
+function renderStrip() {
   const strip = $('strip'); strip.innerHTML = ''; strip.hidden = false;
+  strip.style.setProperty('--ar', state.snap.width / state.snap.height);
   for (const f of state.snap.frames) {
     const b = document.createElement('button');
-    b.className = 'thumb';
+    b.type = 'button'; b.className = 'thumb';
     b.setAttribute('aria-pressed', f.i === state.frame);
-    b.innerHTML = `<img alt=""><span>${labels[f.i]} &middot; ${fmt(f.time)}</span>`;
+    b.innerHTML = `<img alt="" decoding="async"><b>${labels[f.i]}</b><small>${fmt(f.time)}</small>`;
     b.onclick = () => selectFrame(f.i);
     strip.appendChild(b);
-    loadImage(`${state.snap.id}-f${f.i}`).then(u => { b.querySelector('img').src = u; }).catch(() => {});
+    loadFile(`${state.snap.id}-t${f.i}.jpg`).then(u => { b.querySelector('img').src = u; }).catch(() => {});
   }
 }
 
 async function show(kind) {
+  const seq = ++state.seq;
   if (kind === 'enhanced' && !state.enhanced[state.frame]) kind = 'original';
   state.view = kind;
   $('tabO').setAttribute('aria-selected', kind === 'original');
   $('tabE').setAttribute('aria-selected', kind === 'enhanced');
   $('tabO').disabled = false; $('tabE').disabled = !state.enhanced[state.frame];
-  const url = await loadImage(`${state.snap.id}-${kind === 'original' ? 'f' : 'e'}${state.frame}`);
-  $('img').src = url;
-  $('img').alt = `${kind === 'original' ? 'Captured' : 'Enhanced'} frame at ${fmt(state.snap.frames[state.frame].time)}`;
-  $('img').hidden = false; $('empty').hidden = true;
-  $('download').disabled = false;
-  const s = state.snap;
-  $('meta').textContent = `${s.title}  ·  ${s.width}×${s.height}  ·  frame at ${state.snap.frames[state.frame].time}s`;
+  const s = state.snap, f = s.frames[state.frame], stage = $('stage');
+  stage.style.setProperty('--ar', s.width / s.height);
+  $('meta').textContent = `${s.title}  ·  ${s.width}×${s.height}  ·  frame at ${f.time}s`;
+  stage.classList.add('loading');
+  try {
+    const url = await loadFile(`${s.id}-${kind === 'original' ? 'p' : 'q'}${state.frame}.jpg`);
+    if (seq !== state.seq) return;
+    $('img').src = url;
+    $('img').alt = `${kind === 'original' ? 'Captured' : 'Enhanced'} frame at ${fmt(f.time)}`;
+    $('img').hidden = false; $('empty').hidden = true; stage.classList.add('has-img');
+    $('download').disabled = false;
+  } finally { if (seq === state.seq) stage.classList.remove('loading'); }
 }
 
 async function selectFrame(i) {
@@ -216,40 +315,60 @@ async function selectFrame(i) {
   try { await show(state.view); } catch (e) { say(e.message, true); }
 }
 
+async function downloadFull(kind, btn) {
+  const s = state.snap; if (!s) return;
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…';
+  try {
+    const a = document.createElement('a');
+    a.href = await loadFile(`${s.id}-${kind}${state.frame}.png`);
+    a.download = `frame-${s.videoId}-${s.frames[state.frame].time}s-${kind === 'f' ? 'original' : 'enhanced'}.png`;
+    a.click();
+  } catch (e) { say(e.message, true); }
+  btn.textContent = old; btn.disabled = false;
+}
+
+/* ---------- actions ---------- */
 $('capture').onclick = async () => {
-  say(''); $('noCredits').hidden = true; busy(true, 'Fetching the best stream and grabbing three frames…');
+  say(''); $('noCredits').hidden = true; skeleton();
+  busy(true, 'Fetching the best stream and grabbing three frames…');
   try {
     const s = await post('/api/capture', { url: $('url').value, time: $('time').value, step: $('step').value });
-    state.snap = s; state.urls = {}; state.enhanced = {}; state.frame = 1; state.view = 'original';
-    await renderStrip();
+    Object.keys(state.files).forEach(dropFile);
+    state.snap = s; state.enhanced = {}; state.frame = 1; state.view = 'original';
+    document.body.classList.add('has-snap');
+    renderStrip();
     await show('original');
     say('Pick the frame you want, then enhance it.');
-  } catch (e) { say(e.message, true); }
+    if (isMobile()) $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    say(e.message, true);
+    if (state.snap) renderStrip(); else $('strip').hidden = true;
+  }
   busy(false);
 };
+$('url').addEventListener('keydown', e => { if (e.key === 'Enter') $('capture').click(); });
 
 $('enhance').onclick = async () => {
   say(''); busy(true, 'Enhancing with ChatGPT… this can take a minute');
   const frame = state.frame;
   try {
     await post('/api/enhance', { id: state.snap.id, frame, promptId: $('preset').value, matchSize: $('match').checked });
-    delete state.urls[`${state.snap.id}-e${frame}`];
+    dropFile(`${state.snap.id}-q${frame}.jpg`); dropFile(`${state.snap.id}-e${frame}.png`);
     state.enhanced[frame] = true;
-    await show('enhanced');
     $('noCredits').hidden = true;
+    await show('enhanced');
     say('Done. Switch tabs to compare, or pick another frame and enhance it too.');
-  } catch (e) { say(e.message, true); if (e.code === 'no_credits') $('noCredits').hidden = false; }
+    if (isMobile()) $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) { say(e.message, true); if (e.code === 'no_credits') { $('noCredits').hidden = false; $('noCredits').scrollIntoView({ block: 'center', behavior: 'smooth' }); } }
   busy(false);
 };
+$('dockEnhance').onclick = () => $('enhance').click();
 
-$('dlFrame').onclick = async () => {
-  try {
-    const a = document.createElement('a');
-    a.href = await loadImage(`${state.snap.id}-f${state.frame}`);
-    a.download = `frame-${state.snap.videoId}-${state.snap.frames[state.frame].time}s-original.png`;
-    a.click();
-  } catch (e) { say(e.message, true); }
-};
+$('tabO').onclick = () => show('original').catch(e => say(e.message, true));
+$('tabE').onclick = () => show('enhanced').catch(e => say(e.message, true));
+$('download').onclick = () => downloadFull(state.view === 'original' ? 'f' : 'e', $('download'));
+$('dlFrame').onclick = () => downloadFull('f', $('dlFrame'));
+
 // navigator.clipboard only exists on HTTPS or localhost, so over http://<LAN-IP> on a phone it is
 // undefined. Fall back to the older execCommand route, then to a manual long-press copy.
 async function copyText(text) {
@@ -266,7 +385,6 @@ async function copyText(text) {
   ta.remove();
   return ok;
 }
-
 $('copyPrompt').onclick = async () => {
   if (await copyText($('promptText').value)) return say('Prompt copied.');
   const box = $('promptText');
@@ -276,23 +394,23 @@ $('copyPrompt').onclick = async () => {
 };
 $('openGpt').onclick = () => window.open('https://chatgpt.com/', '_blank', 'noopener');
 
-$('tabO').onclick = () => show('original');
-$('tabE').onclick = () => show('enhanced');
-$('download').onclick = () => {
-  const a = document.createElement('a');
-  a.href = $('img').src;
-  a.download = `frame-${state.snap.videoId}-${state.snap.frames[state.frame].time}s-${state.view}.png`;
-  a.click();
-};
-
 $('preset').onchange = () => { $('promptText').value = state.cfg.prompts.find(p => p.id === $('preset').value).text; };
 
+// Left/Right arrows switch between the three frames on desktop
+document.addEventListener('keydown', e => {
+  if (!state.snap || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (e.key === 'ArrowLeft' && state.frame > 0) selectFrame(state.frame - 1);
+  if (e.key === 'ArrowRight' && state.frame < 2) selectFrame(state.frame + 1);
+});
+
 (async () => {
-  state.cfg = await (await fetch('/api/config')).json();
-  $('tokenBox').hidden = !state.cfg.needsToken;
-  for (const p of state.cfg.prompts) $('preset').add(new Option(p.label, p.id));
-  $('preset').onchange();
-  if (!state.cfg.hasKey) say('OPENAI_API_KEY is not set, so enhancing is disabled.', true);
+  try {
+    state.cfg = await (await fetch('/api/config')).json();
+    $('tokenBox').hidden = !state.cfg.needsToken;
+    for (const p of state.cfg.prompts) $('preset').add(new Option(p.label, p.id));
+    $('preset').onchange();
+    if (!state.cfg.hasKey) say('OPENAI_API_KEY is not set, so enhancing is disabled.', true);
+  } catch { say('Could not reach the server.', true); }
 })();
 </script>
 </body>
