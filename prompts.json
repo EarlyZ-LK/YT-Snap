@@ -1,0 +1,17 @@
+[
+  {
+    "id": "faithful-restore",
+    "label": "Faithful restore",
+    "text": "Restore this video frame so it looks like a clean, sharp, high-resolution photograph. Remove compression artifacts, blocking, banding and noise. Recover fine detail and texture, and correct slight motion blur or softness. Do not add, remove or change any object, person, face, text or logo, and do not change the composition. Keep colours natural and true to the original."
+  },
+  {
+    "id": "thumbnail-ready",
+    "label": "Thumbnail ready",
+    "text": "Enhance this video frame for use as a thumbnail. Make it crisp and clean with gentle contrast and vibrance, good exposure on faces and the main subject, and no compression artifacts. Do not add, remove or alter any object, person, face or text, and keep the composition exactly as it is."
+  },
+  {
+    "id": "film-grade",
+    "label": "Cinematic grade",
+    "text": "Clean up this video frame (remove compression artifacts and noise, restore detail) and apply a subtle cinematic colour grade with rich but natural tones and soft highlight roll-off. Do not add, remove or alter any object, person, face or text, and keep the composition exactly as it is."
+  }
+]

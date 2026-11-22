@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame Grab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --table: #e8ebea;
+    --panel: #f6f7f6;
+    --mat: #1c2321;
+    --ink: #17201e;
+    --muted: #5d6a66;
+    --line: #c9d0cd;
+    --accent: #0e5a6b;
+    --accent-ink: #ffffff;
+    --err: #a3261f;
+    font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --table:#151a19; --panel:#1d2422; --mat:#0b0f0e; --ink:#e7ecea; --muted:#92a19c; --line:#313b38; --accent:#58b6c9; --accent-ink:#06191d; --err:#ff8a80; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--table); color:var(--ink); min-height:100vh; }
+  .app { display:grid; grid-template-columns: 360px 1fr; min-height:100vh; }
+  aside { background:var(--panel); border-right:1px solid var(--line); padding:28px 24px; display:flex; flex-direction:column; gap:20px; }
+  h1 { font-size:22px; font-weight:600; margin:0; letter-spacing:-.01em; }
+  .sub { color:var(--muted); font-size:14px; margin:4px 0 0; line-height:1.45; }
+  label { display:block; font-size:13px; font-weight:500; margin-bottom:6px; }
+  input[type=text], input[type=password], select, textarea {
+    width:100%; font:inherit; font-size:14px; color:var(--ink); background:transparent;
+    border:1px solid var(--line); border-radius:6px; padding:10px 11px;
+  }
+  textarea { resize:none; color:var(--muted); line-height:1.45; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .strip { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .thumb { background:var(--panel); color:var(--ink); border:1px solid var(--line); padding:6px; border-radius:8px;
+           display:flex; flex-direction:column; gap:6px; text-align:left; font-weight:400; }
+  .thumb img { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:4px; display:block; background:var(--mat); }
+  .thumb span { font-size:12.5px; font-variant-numeric: tabular-nums; }
+  .thumb[aria-pressed=true] { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+  .hint { color:var(--muted); font-size:12.5px; margin-top:5px; }
+  button { font:inherit; font-size:14px; font-weight:500; border-radius:6px; padding:11px 14px; cursor:pointer;
+           border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink); }
+  button.ghost { background:transparent; color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .check { display:flex; gap:8px; align-items:flex-start; font-size:13px; font-weight:400; }
+  .check input { margin-top:2px; }
+  .step { display:flex; flex-direction:column; gap:12px; padding-top:20px; border-top:1px solid var(--line); }
+  main { padding:28px; display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .bar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; min-height:38px; }
+  .tabs { display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .tabs button { border:0; border-radius:0; background:transparent; color:var(--muted); padding:8px 16px; }
+  .tabs button[aria-selected=true] { background:var(--ink); color:var(--table); }
+  .meta { color:var(--muted); font-size:13px; font-variant-numeric: tabular-nums; }
+  .stage { flex:1; min-height:320px; background:var(--mat); border-radius:8px; display:grid; place-items:center; overflow:hidden; position:relative; }
+  .stage img { max-width:100%; max-height:calc(100vh - 290px); display:block; }
+  .empty { color:#9fb0ab; font-size:15px; max-width:30ch; text-align:center; line-height:1.5; padding:20px; }
+  .busy { position:absolute; inset:0; background:rgba(11,15,14,.72); display:none; place-items:center; color:#e7ecea; font-size:15px; }
+  .busy.on { display:grid; }
+  .status { font-size:13.5px; min-height:20px; }
+  .status.err { color:var(--err); }
+  @media (max-width: 820px) { .app { grid-template-columns:1fr; } aside { border-right:0; border-bottom:1px solid var(--line); } .stage img { max-height:70vh; } }
+  @media (prefers-reduced-motion: no-preference) { .busy.on span { animation: pulse 1.4s ease-in-out infinite; } @keyframes pulse { 50% { opacity:.45; } } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div>
+      <h1>Frame Grab</h1>
+      <p class="sub">Pull the sharpest still from a YouTube link, then clean it up with your saved prompt.</p>
+    </div>
+
+    <div id="tokenBox" hidden>
+      <label for="token">Access token</label>
+      <input id="token" type="password" autocomplete="current-password">
+    </div>
+
+    <div class="step" style="border:0;padding:0">
+      <div>
+        <label for="url">YouTube link</label>
+        <input id="url" type="text" placeholder="https://youtu.be/VIDEO_ID?t=95" autocomplete="off">
+        <div class="hint">The time in the link (t=) is used automatically.</div>
+      </div>
+      <div class="row2">
+        <div>
+          <label for="time">Time override</label>
+          <input id="time" type="text" placeholder="1:35">
+        </div>
+        <div>
+          <label for="step">Frame spacing</label>
+          <select id="step">
+            <option value="0.5" selected>&plusmn;0.5 s</option>
+            <option value="0.25">&plusmn;0.25 s</option>
+            <option value="1">&plusmn;1 s</option>
+          </select>
+        </div>
+      </div>
+      <button id="capture">Capture 3 frames</button>
+    </div>
+
+    <div class="step">
+      <div>
+        <label for="preset">Enhancement prompt</label>
+        <select id="preset"></select>
+      </div>
+      <textarea id="promptText" rows="6" readonly aria-label="Prompt text"></textarea>
+      <label class="check"><input type="checkbox" id="match"> Scale the result back up to the original size</label>
+      <button id="enhance" disabled>Enhance with ChatGPT</button>
+    </div>
+
+    <div class="status" id="status" role="status"></div>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tabO" aria-selected="true" disabled>Original</button>
+        <button role="tab" id="tabE" aria-selected="false" disabled>Enhanced</button>
+      </div>
+      <div class="meta" id="meta"></div>
+      <button class="ghost" id="download" disabled>Download PNG</button>
+    </div>
+    <div class="strip" id="strip" hidden></div>
+    <div class="stage">
+      <div class="empty" id="empty">Paste a link and press Capture. You get three frames around that moment to choose from.</div>
+      <img id="img" alt="" hidden>
+      <div class="busy" id="busy"><span id="busyText">Working…</span></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const state = { cfg: null, snap: null, frame: 1, view: 'original', enhanced: {}, urls: {} };
+
+const tokenInput = $('token');
+tokenInput.value = localStorage.getItem('fg_token') || '';
+tokenInput.addEventListener('change', () => localStorage.setItem('fg_token', tokenInput.value));
+const headers = () => ({ 'Content-Type': 'application/json', 'x-access-token': tokenInput.value });
+
+function say(msg, err) { $('status').textContent = msg || ''; $('status').className = 'status' + (err ? ' err' : ''); }
+function busy(on, text) {
+  $('busy').classList.toggle('on', on); if (text) $('busyText').textContent = text;
+  $('capture').disabled = on; $('enhance').disabled = on || !state.snap;
+}
+
+async function post(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || 'Request failed');
+  return j;
+}
+
+async function loadImage(key) {
+  if (!state.urls[key]) {
+    const r = await fetch(`/api/files/${key}.png`, { headers: { 'x-access-token': tokenInput.value } });
+    if (!r.ok) throw new Error('Could not load the image.');
+    state.urls[key] = URL.createObjectURL(await r.blob());
+  }
+  return state.urls[key];
+}
+
+const fmt = s => { const m = Math.floor(s / 60); return `${m}:${(s - m * 60).toFixed(2).padStart(5, '0')}`; };
+const labels = ['Before', 'Link time', 'After'];
+
+async function renderStrip() {
+  const strip = $('strip'); strip.innerHTML = ''; strip.hidden = false;
+  for (const f of state.snap.frames) {
+    const b = document.createElement('button');
+    b.className = 'thumb';
+    b.setAttribute('aria-pressed', f.i === state.frame);
+    b.innerHTML = `<img alt=""><span>${labels[f.i]} &middot; ${fmt(f.time)}</span>`;
+    b.onclick = () => selectFrame(f.i);
+    strip.appendChild(b);
+    loadImage(`${state.snap.id}-f${f.i}`).then(u => { b.querySelector('img').src = u; }).catch(() => {});
+  }
+}
+
+async function show(kind) {
+  if (kind === 'enhanced' && !state.enhanced[state.frame]) kind = 'original';
+  state.view = kind;
+  $('tabO').setAttribute('aria-selected', kind === 'original');
+  $('tabE').setAttribute('aria-selected', kind === 'enhanced');
+  $('tabO').disabled = false; $('tabE').disabled = !state.enhanced[state.frame];
+  const url = await loadImage(`${state.snap.id}-${kind === 'original' ? 'f' : 'e'}${state.frame}`);
+  $('img').src = url;
+  $('img').alt = `${kind === 'original' ? 'Captured' : 'Enhanced'} frame at ${fmt(state.snap.frames[state.frame].time)}`;
+  $('img').hidden = false; $('empty').hidden = true;
+  $('download').disabled = false;
+  const s = state.snap;
+  $('meta').textContent = `${s.title}  ·  ${s.width}×${s.height}  ·  frame at ${state.snap.frames[state.frame].time}s`;
+}
+
+async function selectFrame(i) {
+  state.frame = i;
+  document.querySelectorAll('.thumb').forEach((b, idx) => b.setAttribute('aria-pressed', idx === i));
+  try { await show(state.view); } catch (e) { say(e.message, true); }
+}
+
+$('capture').onclick = async () => {
+  say(''); busy(true, 'Fetching the best stream and grabbing three frames…');
+  try {
+    const s = await post('/api/capture', { url: $('url').value, time: $('time').value, step: $('step').value });
+    state.snap = s; state.urls = {}; state.enhanced = {}; state.frame = 1; state.view = 'original';
+    await renderStrip();
+    await show('original');
+    say('Pick the frame you want, then enhance it.');
+  } catch (e) { say(e.message, true); }
+  busy(false);
+};
+
+$('enhance').onclick = async () => {
+  say(''); busy(true, 'Enhancing with ChatGPT… this can take a minute');
+  const frame = state.frame;
+  try {
+    await post('/api/enhance', { id: state.snap.id, frame, promptId: $('preset').value, matchSize: $('match').checked });
+    delete state.urls[`${state.snap.id}-e${frame}`];
+    state.enhanced[frame] = true;
+    await show('enhanced');
+    say('Done. Switch tabs to compare, or pick another frame and enhance it too.');
+  } catch (e) { say(e.message, true); }
+  busy(false);
+};
+
+$('tabO').onclick = () => show('original');
+$('tabE').onclick = () => show('enhanced');
+$('download').onclick = () => {
+  const a = document.createElement('a');
+  a.href = $('img').src;
+  a.download = `frame-${state.snap.videoId}-${state.snap.frames[state.frame].time}s-${state.view}.png`;
+  a.click();
+};
+
+$('preset').onchange = () => { $('promptText').value = state.cfg.prompts.find(p => p.id === $('preset').value).text; };
+
+(async () => {
+  state.cfg = await (await fetch('/api/config')).json();
+  $('tokenBox').hidden = !state.cfg.needsToken;
+  for (const p of state.cfg.prompts) $('preset').add(new Option(p.label, p.id));
+  $('preset').onchange();
+  if (!state.cfg.hasKey) say('OPENAI_API_KEY is not set, so enhancing is disabled.', true);
+})();
+</script>
+</body>
+</html>

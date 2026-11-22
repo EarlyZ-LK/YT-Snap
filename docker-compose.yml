@@ -1,0 +1,9 @@
+services:
+  yt-snapshot:
+    build: .
+    ports: ["3000:3000"]
+    env_file: .env
+    volumes: ["snapshots:/data"]
+    restart: unless-stopped
+volumes:
+  snapshots:
