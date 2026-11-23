@@ -159,3 +159,4 @@ vite.config.ts.timestamp-*
 
 # Ignore captured data folder
 data/*
+cookies.txt
