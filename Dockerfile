@@ -1,8 +1,9 @@
 FROM node:22-bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg python3 ca-certificates curl \
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg python3 python3-venv ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-RUN curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
- && chmod a+rx /usr/local/bin/yt-dlp
+# Install yt-dlp with pip so the EJS challenge-solver scripts come with it ("[default]"); Node is the JS runtime.
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir -U "yt-dlp[default]"
+ENV PATH="/opt/venv/bin:${PATH}"
 WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dependencies
@@ -10,5 +11,5 @@ COPY . .
 ENV NODE_ENV=production DATA_DIR=/data
 VOLUME /data
 EXPOSE 3000
-# YouTube changes often, so update yt-dlp on every start
-CMD ["sh", "-c", "yt-dlp -U || true; node server.js"]
+# YouTube changes often, so update yt-dlp (and its solver scripts) on every start
+CMD ["sh", "-c", "pip install --no-cache-dir -U 'yt-dlp[default]' || true; node server.js"]

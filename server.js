@@ -110,7 +110,7 @@ app.post('/api/capture', auth, async (req, res) => {
     const step = [0.25, 0.5, 1].includes(Number(req.body.step)) ? Number(req.body.step) : 0.5;
 
     const info = JSON.parse(await run('yt-dlp', [
-      '-f', 'bv*', '--no-playlist', '--no-warnings', '-j', ...YTDLP_ARGS,
+      '-f', 'bv*/b', '--no-playlist', '--no-warnings', '-j', ...YTDLP_ARGS,
       `https://www.youtube.com/watch?v=${parsed.id}`
     ]));
     if (info.duration && t > info.duration) throw new Error(`That time is past the end of the video (${Math.floor(info.duration)}s).`);
