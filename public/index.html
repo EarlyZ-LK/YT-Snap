@@ -112,11 +112,31 @@
             background:var(--surface); border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,.18); }
   .status.err { background:var(--red-soft); border-color:var(--red); color:var(--red-text); font-weight:600; }
 
+  .help { margin-left:auto; flex:none; }
+  .brand > div { min-width:0; }
+
+  /* guide dialog */
+  dialog { border:0; border-radius:16px; padding:20px; max-width:560px; width:calc(100% - 32px); max-height:90vh; overflow:auto;
+           background:var(--surface); color:var(--ink); box-shadow:0 20px 60px rgba(0,0,0,.35); }
+  dialog::backdrop { background:rgba(20,8,10,.55); }
+  .guide-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+  .guide-head h2 { font-size:18px; }
+  .x { width:44px; height:44px; flex:none; border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:10px; font-size:22px; line-height:1; cursor:pointer; }
+  .steps { list-style:none; margin:0 0 16px; padding:0; display:grid; gap:14px; counter-reset:s; }
+  .steps li { counter-increment:s; display:grid; grid-template-columns:28px 1fr; gap:12px; align-items:start; }
+  .steps li::before { content:counter(s); width:28px; height:28px; border-radius:50%; background:var(--red); color:var(--red-ink);
+                      display:grid; place-items:center; font-weight:700; font-size:13px; }
+  .steps code { background:var(--red-soft); color:var(--red-text); padding:1px 6px; border-radius:6px; font-size:13px; }
+  .guide-note { background:var(--red-soft); border-radius:10px; padding:12px 14px; font-size:13.5px; margin-bottom:16px; }
+  .guide-note ul { margin:6px 0 0; padding-left:18px; display:grid; gap:4px; }
+  dialog .btn { width:100%; }
+
   /* mobile dock */
   .dock { display:none; }
 
   @media (max-width: 899px) {
     :root { --hdr:86px; }
+    dialog { margin:auto 0 0; width:100%; max-width:none; border-radius:16px 16px 0 0; padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px)); }
     .shell { grid-template-columns:minmax(0,1fr); grid-template-rows:auto; grid-template-areas:"capture" "results" "enhance"; gap:16px; padding-top:14px; }
     .card { padding:16px; }
     .sub { font-size:12.5px; }
@@ -142,6 +162,7 @@
       <h1>YT Snap</h1>
       <p class="sub">Pull the sharpest still from a YouTube link, then Enhance.</p>
     </div>
+    <button class="btn secondary sm help" id="helpBtn" type="button">How to use</button>
   </div>
 </header>
 
@@ -221,6 +242,29 @@
 </main>
 
 <div class="dock"><button class="btn" id="dockEnhance" type="button" disabled>Enhance with ChatGPT</button></div>
+
+<dialog id="guide" aria-labelledby="guideTitle">
+  <div class="guide-head">
+    <h2 id="guideTitle">How to use YT Snap</h2>
+    <button class="x" id="guideClose" type="button" aria-label="Close">&times;</button>
+  </div>
+  <ol class="steps">
+    <li><div><b>Paste a YouTube link.</b> Add the moment you want to the end of the link, like <code>?t=95</code>, or leave it off and type a time such as <code>1:35</code> in Time override.</div></li>
+    <li><div><b>Press Capture 3 frames.</b> You get one frame just before, one at, and one just after that moment (0.5 s apart by default; change it in Frame spacing). This helps when eyes or expressions change quickly.</div></li>
+    <li><div><b>Pick the best frame.</b> Tap a thumbnail to see it large. On a computer, the Left and Right arrow keys switch frames.</div></li>
+    <li><div><b>Choose an Enhancement prompt</b> and press <b>Enhance with ChatGPT</b>. It can take up to a minute. Tick &ldquo;Scale the result back up to the original size&rdquo; if you need the original dimensions.</div></li>
+    <li><div><b>Compare and download.</b> Switch between Original and Enhanced, then press Download PNG. You can enhance the other frames too.</div></li>
+  </ol>
+  <div class="guide-note">
+    <b>Good to know</b>
+    <ul>
+      <li>Original downloads are full quality. Enhanced images from ChatGPT are about 1536 px on the long side.</li>
+      <li>If you see &ldquo;Out of OpenAI credits&rdquo;, use the buttons there to download the frame, copy the prompt and enhance it by hand in ChatGPT.</li>
+      <li>Private or age-restricted videos can&rsquo;t be captured.</li>
+    </ul>
+  </div>
+  <button class="btn" id="guideDone" type="button">Got it</button>
+</dialog>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -398,6 +442,16 @@ $('copyPrompt').onclick = async () => {
 $('openGpt').onclick = () => window.open('https://chatgpt.com/', '_blank', 'noopener');
 
 $('preset').onchange = () => { $('promptText').value = state.cfg.prompts.find(p => p.id === $('preset').value).text; };
+
+// How-to guide: opens from the header button, and once automatically on a first visit
+const guide = $('guide');
+$('helpBtn').onclick = () => guide.showModal();
+$('guideClose').onclick = $('guideDone').onclick = () => guide.close();
+guide.addEventListener('click', e => {
+  const r = guide.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) guide.close();
+});
+try { if (!localStorage.getItem('ytsnap_guide_seen')) { localStorage.setItem('ytsnap_guide_seen', '1'); guide.showModal(); } } catch {}
 
 // Left/Right arrows switch between the three frames on desktop
 document.addEventListener('keydown', e => {

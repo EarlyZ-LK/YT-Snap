@@ -2,7 +2,7 @@
   {
     "id": "faithful-restore",
     "label": "Faithful restore",
-    "text": "Enhance this photo to clean, sharp, natural quality while preserving the exact identity of the person. Keep facial features, bone structure, eye color, expression, hair, skin tone, clothing, pose, and background unchanged. Reduce blur, grain, and noise, and balance lighting and color naturally. Keep real skin texture, pores, and fine lines visible—do not slim or reshape the face, add beauty filters, over-smooth skin, or invent new details."
+    "text": "Enhance this photo to clean, sharp, natural quality while preserving the exact identity of the person. Keep facial features, bone structure, eye color, expression, hair, skin tone, clothing, pose, and background unchanged. Reduce blur, grain, and noise, and balance lighting and color naturally. Keep real skin texture, pores, and fine lines visible—do not slim or reshape the face, add beauty filters, over-smooth skin, or invent new details. Do not change, redraw, re-spell, add or remove any text, words, letters, numbers or logos; keep every piece of text exactly as it appears in the original."
   },
   {
     "id": "thumbnail-ready",

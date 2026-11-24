@@ -2,6 +2,9 @@
 
 Paste a YouTube link with a time (`?t=95`, `&t=1m35s`, `youtu.be/ID?t=95`), get three highest-resolution stills (one step before, at, and one step after that moment; 0.5 s by default) as lossless PNGs, pick the one where the expression or eye direction is right, then send it to OpenAI's image model with a preset prompt.
 
+## How to use
+The page has a **How to use** button in the header (it opens once on the first visit). In short: paste a link, press Capture 3 frames, pick the best frame, press Enhance, then compare and download.
+
 ## Run
 ```bash
 cp .env.example .env      # add OPENAI_API_KEY

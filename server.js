@@ -1,6 +1,6 @@
 import express from 'express';
 import { spawn } from 'node:child_process';
-import { promises as fs } from 'node:fs';
+import { promises as fs, existsSync } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,16 @@ const DATA = process.env.DATA_DIR || path.join(__dirname, 'data');
 const TOKEN = process.env.ACCESS_TOKEN || '';
 const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
 const MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
-const YTDLP_ARGS = (process.env.YTDLP_EXTRA_ARGS || '').split(' ').filter(Boolean);
+const YTDLP_ARGS = (() => {
+  const a = (process.env.YTDLP_EXTRA_ARGS || '').split(' ').filter(Boolean);
+  // A missing cookies file makes yt-dlp crash when it tries to save it back, so drop the option and say so.
+  const i = a.indexOf('--cookies');
+  if (i !== -1 && a[i + 1] && !existsSync(path.resolve(a[i + 1]))) {
+    console.warn(`WARNING: cookies file not found at ${path.resolve(a[i + 1])}. Running yt-dlp without cookies. Check --cookies in YTDLP_EXTRA_ARGS.`);
+    a.splice(i, 2);
+  }
+  return a;
+})();
 const PROMPTS = JSON.parse(await fs.readFile(path.join(__dirname, 'prompts.json'), 'utf8'));
 
 await fs.mkdir(DATA, { recursive: true });
@@ -20,7 +29,8 @@ await fs.mkdir(DATA, { recursive: true });
 
 function run(cmd, args, { timeout = 120000 } = {}) {
   return new Promise((resolve, reject) => {
-    const p = spawn(cmd, args);
+    // UTF-8 for the child's stdout/stderr: on Windows, piped Python output defaults to cp1252 and can crash on non-Latin titles
+    const p = spawn(cmd, args, { env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' } });
     let out = '', err = '';
     const timer = setTimeout(() => { p.kill('SIGKILL'); reject(new Error(`${cmd} timed out`)); }, timeout);
     p.stdout.on('data', d => (out += d));
@@ -28,8 +38,12 @@ function run(cmd, args, { timeout = 120000 } = {}) {
     p.on('error', e => { clearTimeout(timer); reject(e); });
     p.on('close', code => {
       clearTimeout(timer);
-      if (code === 0) resolve(out);
-      else reject(new Error(err.trim().split('\n').pop() || `${cmd} exited with code ${code}`));
+      if (code === 0) return resolve(out);
+      // log everything for the operator, show the user the most useful single line
+      console.error(`${cmd} failed (exit ${code}):\n${err.trim()}`);
+      const lines = err.trim().split('\n').map(l => l.trim()).filter(Boolean).reverse();
+      const msg = lines.find(l => /^ERROR:/.test(l)) || lines.find(l => !/^\[PYI-/.test(l)) || `${cmd} exited with code ${code}`;
+      reject(new Error(msg));
     });
   });
 }
